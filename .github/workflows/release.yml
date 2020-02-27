@@ -7,29 +7,37 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    - name: Check and release
-      run: |
-        CORE_LATEST_URL="https://api.github.com/repos/v2ray/v2ray-core/releases/latest"
-        CORE_LATEST_VER=`curl -sSL ${CORE_LATEST_URL} | grep 'tag_name' | cut -d '"' -f 4`
-        if [[ ${CORE_LATEST_VER} != v* ]]; then
-          CORE_LATEST_VER=v${CORE_LATEST_VER}
-        fi
-        DIST_TAGS_URL="https://api.github.com/repos/${{ github.repository }}/tags"
-        DIST_TAG_FOUND=`curl -sSL ${DIST_TAGS_URL} | grep "\"name\"\: \"${CORE_LATEST_VER}\""` || true
-        if [ -z ${DIST_TAG_FOUND} ]; then
-          for v2ray_core_file in $(curl -sSL $CORE_LATEST_URL | grep browser_download_url | cut -d '"' -f 4)
-          do
-            wget $v2ray_core_file
-          done
-          mkdir -p .github/workflows
-          wget -O .github/workflows/release.yml https://github.com/${{ github.repository }}/raw/master/.github/workflows/release.yml
-          wget https://github.com/${{ github.repository }}/raw/master/README.md
-          git init
-          git add .
-          git config user.name "Darien Raymond"
-          git config user.email "admin@v2ray.com"
-          git commit -m "Version ${CORE_LATEST_VER}"
-          git tag -a "${CORE_LATEST_VER}" -m "Version ${CORE_LATEST_VER}"
-          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-          git push -u --force --follow-tags origin master
-        fi
+      - name: Checkout out project code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Remove old versions
+        run: |
+          ls -lah
+          echo "----------------"
+          rm -rf v2ray-*
+          ls -lah
+
+      - name: Check and release
+        run: |
+          CORE_LATEST_URL="https://api.github.com/repos/v2ray/v2ray-core/releases/latest"
+          # CORE_LATEST_VER=`curl -sSL ${CORE_LATEST_URL} | grep 'tag_name' | cut -d '"' -f 4`
+          CORE_LATEST_VER="v4.21.3"
+          if [[ ${CORE_LATEST_VER} != v* ]]; then
+            CORE_LATEST_VER=v${CORE_LATEST_VER}
+          fi
+          DIST_TAGS_URL="https://api.github.com/repos/${{ github.repository }}/tags"
+          DIST_TAG_FOUND=`curl -sSL ${DIST_TAGS_URL} | grep "\"name\"\: \"${CORE_LATEST_VER}\""` || true
+          if [ -z ${DIST_TAG_FOUND} ]; then
+            for v2ray_core_file in $(curl -sSL $CORE_LATEST_URL | grep 'browser_download_url' | cut -d '"' -f 4); do
+              wget $v2ray_core_file
+            done
+            git add .
+            git config user.name "Darien Raymond"
+            git config user.email "admin@v2ray.com"
+            git commit -m "Version ${CORE_LATEST_VER}"
+            git tag -a "${CORE_LATEST_VER}" -m "Version ${CORE_LATEST_VER}"
+            git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+            git push -u --force --follow-tags origin master
+          fi
