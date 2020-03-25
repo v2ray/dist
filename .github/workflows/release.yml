@@ -1,0 +1,47 @@
+name: release
+on:
+  schedule:
+    - cron: "0 0 * * 3"
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check and release
+      run: |
+        CORE_TAG_URL="https://api.github.com/repos/v2ray/v2ray-core/releases/latest"
+        CORE_LATEST_VER=`curl -s ${CORE_TAG_URL} --connect-timeout 30| grep 'tag_name' | cut -d\" -f4`
+        if [[ ${CORE_LATEST_VER} != v* ]]; then
+            CORE_LATEST_VER=v${CORE_LATEST_VER}
+        fi
+        DIST_TAGS_URL="https://api.github.com/repos/${{ github.repository }}/tags"
+        DIST_TAG_FOUND=`curl -s ${DIST_TAGS_URL} --connect-timeout 30| grep "\"name\"\: \"${CORE_LATEST_VER}\""` || true
+        if [ -z ${DIST_TAG_FOUND} ]; then
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-dragonfly-64.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-freebsd-32.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-freebsd-64.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-32.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-64.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-arm.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-arm64.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-mips.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-mips64.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-mips64le.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-linux-s390x.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-macos.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-openbsd-32.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-openbsd-64.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-windows-32.zip &> /dev/null
+            wget https://github.com/v2ray/v2ray-core/releases/latest/download/v2ray-windows-64.zip &> /dev/null
+            wget https://github.com/${{ github.repository }}/raw/master/README.md
+            mkdir -p .github/workflows
+            wget -O .github/workflows/release.yml https://github.com/${{ github.repository }}/raw/master/.github/workflows/release.yml
+            git init
+            git add .
+            git config user.name "Darien Raymond"
+            git config user.email "admin@v2ray.com"
+            git commit -m "Version ${CORE_LATEST_VER}"
+            git tag -a "${CORE_LATEST_VER}" -m "Version ${CORE_LATEST_VER}"
+            git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+            git push -u --force --follow-tags origin master
+        fi
