@@ -29,7 +29,7 @@ jobs:
           DIST_TAGS_URL="https://api.github.com/repos/${{ github.repository }}/tags"
           DIST_TAG_FOUND=`curl -s ${DIST_TAGS_URL} --connect-timeout 5 | grep "\"name\"\: \"${CORE_LATEST_VER}\""` || true
           if [ -z ${DIST_TAG_FOUND} ]; then
-            rm -rf *.zip *.dgst
+            find . -type 'f' | grep -v "README.md" | grep -v ".git" | grep -v ".github" | xargs rm -rf
             for file in $(curl -sSL $CORE_TAG_URL | grep 'browser_download_url' | cut -d\" -f4); do
               wget $file
             done
